@@ -47,7 +47,7 @@ sub _diff_HASH {
         push @diff, {path => [@path, $k], a => $a->{$k}, b => $b->{$k}};
       }
     }
-    elsif (defined $a->{$k} ? defined $b->{$k} ? $b->{$k} ne $a->{$k} : 1 : 0) {
+    elsif (defined $a->{$k} ? defined $b->{$k} ? $b->{$k} ne $a->{$k} : 1 : defined $b->{$k}) {
       push @diff, {path => [@path, $k], a => $a->{$k}, b => $b->{$k}};
     }
   }
@@ -77,7 +77,7 @@ sub _diff_ARRAY {
         push @diff, {path => [@path, $i], a => $a->[$i], b => $b->[$i]};
       }
     }
-    elsif (defined $a->[$i] ? defined $b->[$i] ? $b->[$i] ne $a->[$i] : 1 : 0) {
+    elsif (defined $a->[$i] ? defined $b->[$i] ? $b->[$i] ne $a->[$i] : 1 : defined $b->[$i]) {
       push @diff, {path => [@path, $i], a => $a->[$i], b => $b->[$i]};
     }
   }
