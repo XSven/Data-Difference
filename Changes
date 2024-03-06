@@ -1,4 +1,12 @@
+Release history for Data-Difference
+
 {{$NEXT}}
+            * Fix undef key in first argument [rt.cpan.org #109262]
+            * Fix prerequisites declaration in dist.ini file
+            * Add  ABSTRACT to main module to overcome dzil complain
+            * Add more tests and name them
+            * Tidy main module and test script
+            * Do not inherit from Exporter anymore
 
 0.112850 -- Wed Oct 12 12:43:16 CDT 2011
-  * Initial Release
+            * Initial Release
