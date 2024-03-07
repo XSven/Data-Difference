@@ -35,17 +35,17 @@ sub _diff_HASH {
   @k{ keys %$a, keys %$b } = ();
   foreach my $k ( sort keys %k ) {
     if ( !exists $a->{ $k } ) {
-      push @diff, { path => [ @path, $k ], b => $b->{ $k } };
+      push @diff, { path => [ @path, "{$k}" ], b => $b->{ $k } };
     } elsif ( !exists $b->{ $k } ) {
-      push @diff, { path => [ @path, $k ], a => $a->{ $k } };
+      push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k } };
     } elsif ( ref( $a->{ $k } ) ) {
       if ( my $sub = __PACKAGE__->can( '_diff_' . ref( $a->{ $k } ) ) ) {
-        push @diff, $sub->( $a->{ $k }, $b->{ $k }, @path, $k );
+        push @diff, $sub->( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
       } else {
-        push @diff, { path => [ @path, $k ], a => $a->{ $k }, b => $b->{ $k } };
+        push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } };
       }
     } elsif ( defined $a->{ $k } ? defined $b->{ $k } ? $b->{ $k } ne $a->{ $k } : 1 : defined $b->{ $k } ) {
-      push @diff, { path => [ @path, $k ], a => $a->{ $k }, b => $b->{ $k } };
+      push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } };
     }
   }
 
@@ -61,17 +61,17 @@ sub _diff_ARRAY {
 
   foreach my $i ( 0 .. $n ) {
     if ( $i > $#$a ) {
-      push @diff, { path => [ @path, $i ], b => $b->[ $i ] };
+      push @diff, { path => [ @path, "[$i]" ], b => $b->[ $i ] };
     } elsif ( $i > $#$b ) {
-      push @diff, { path => [ @path, $i ], a => $a->[ $i ] };
+      push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ] };
     } elsif ( ref( $a->[ $i ] ) ) {
       if ( my $sub = __PACKAGE__->can( '_diff_' . ref( $a->[ $i ] ) ) ) {
-        push @diff, $sub->( $a->[ $i ], $b->[ $i ], @path, $i );
+        push @diff, $sub->( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
       } else {
-        push @diff, { path => [ @path, $i ], a => $a->[ $i ], b => $b->[ $i ] };
+        push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] };
       }
     } elsif ( defined $a->[ $i ] ? defined $b->[ $i ] ? $b->[ $i ] ne $a->[ $i ] : 1 : defined $b->[ $i ] ) {
-      push @diff, { path => [ @path, $i ], a => $a->[ $i ], b => $b->[ $i ] };
+      push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] };
     }
   }
 
@@ -89,7 +89,6 @@ Data::Difference - Compare simple hierarchical data
 =head1 SYNOPSYS
 
   use Data::Difference qw( data_diff );
-  use Data::Dumper;
 
   my %from = ( Q => 1, W => 2, E => 3, X => [ 1, 2, 3 ], Y=> [ 5, 6 ] );
   my %to = ( W => 4, E => 3, R => 5, => X => [ 1, 2 ], Y => [ 5, 7, 9 ] );
@@ -97,22 +96,22 @@ Data::Difference - Compare simple hierarchical data
 
   @diff = (
     # value $a->{ Q } was deleted
-    { a    => 1, path => [ 'Q' ] },
+    { a    => 1, path => [ '{Q}' ] },
 
     # value $b->{ R } was added
-    { b    => 5, path => [ 'R' ] },
+    { b    => 5, path => [ '{R}' ] },
 
-    # value $a->{ W } changed
-    { a    => 2, b    => 4, path => [ 'W' ] },
+    # value $a->{ W } was changed
+    { a    => 2, b    => 4, path => [ '{W}' ] },
 
     # value $a->{ X }[ 2 ] was deleted
-    { a    => 3, path => [ 'X', 2 ] },
+    { a    => 3, path => [ '{X}', 2 ] },
 
     # value $a->{ Y }[ 1 ] was changed
-    { a    => 6, b    => 7, path => [ 'Y', 1 ] },
+    { a    => 6, b    => 7, path => [ '{Y}', '[1]' ] },
 
     # value $b->{ Y }[ 2 ] was added
-    { b    => 9, path => [ 'Y', 2 ] },
+    { b    => 9, path => [ '{Y}', '[2]' ] },
   );
 
 =head1 DESCRIPTION
@@ -121,7 +120,7 @@ C<Data::Difference> will compare simple data structures returning a list of
 details about what was added, removed or changed. It will currently handle
 SCALARs, HASH references and ARRAY references.
 
-Each change is returned as a hash with the following element.
+Each change is returned as a hash reference with the following elements:
 
 =over
 
@@ -129,7 +128,7 @@ Each change is returned as a hash with the following element.
 
 path will be an ARRAY reference containing the hierarchical path to the value,
 each element in the array will be either the key of a hash or the index on an
-array
+array.
 
 =item a
 
