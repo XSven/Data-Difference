@@ -144,6 +144,24 @@ second argument.
 
 =back
 
+=head1 SEE ALSO
+
+=over
+
+=item *
+
+L<Data::Comparator>
+
+=item *
+
+L<Data::Diff>
+
+=item *
+
+L<Test2::Compare::Delta>
+
+=back
+
 =head1 AUTHOR
 
 Graham Barr C<< <gbarr@cpan.org> >>
