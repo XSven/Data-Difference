@@ -2,13 +2,15 @@
 use strict; use warnings;
 #>>>
 
-use Test::More import => [ qw( BAIL_OUT use_ok ) ], tests => 11;
+use Test::More import => [ qw( BAIL_OUT like use_ok ) ], tests => 12;
 use Test::Differences qw( eq_or_diff );
+use Test::Fatal       qw( exception );
 
 BEGIN { use_ok( 'Data::Difference', 'data_diff' ) or BAIL_OUT 'Cannot load module Data::Difference!' }
 
 my @tests = (
   { from => undef, to => undef, diff => [], name => 'no change (from and to are undefined)' },
+  { from => 1,     to => 2,     diff => [ { path => [], a => 1, b => 2 } ], name => 'value $a was changed' },
   {
     from => [ 1, 2, 3 ],
     to   => { W => 4, E => 3, R => 5 },
@@ -21,7 +23,6 @@ my @tests = (
     diff => [ { path => [ '{D}', '{FOO}' ], b => 42 } ],
     name => 'value $b->{ D }{ FOO } was added'
   },
-  { from => 1, to => 2, diff => [ { path => [], a => 1, b => 2 } ], name => 'value $a was changed' },
   {
     from => [ 1, 2, 3 ],
     to   => [ 1, 2 ],
@@ -67,3 +68,5 @@ my @tests = (
 foreach my $t ( @tests ) {
   eq_or_diff( [ data_diff( $t->{ from }, $t->{ to } ) ], $t->{ diff }, $t->{ name } || () );
 }
+
+like exception { data_diff( \1, 2 ) }, qr/\A Cannot\ handle/x, '$from has an unsupported ref type';

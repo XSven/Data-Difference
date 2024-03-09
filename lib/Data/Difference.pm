@@ -16,7 +16,7 @@ sub data_diff {
     if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
       return $sub->( $a, $b );
     } else {
-      return { path => [], a => $a, b => $b };
+      _croak( 'Cannot handle %s ref type yet', $ref_type );
     }
   } elsif ( defined $a ? defined $b ? $a ne $b : 1 : 0 ) {
     return { path => [], a => $a, b => $b };
@@ -76,6 +76,12 @@ sub _diff_ARRAY {
   }
 
   return @diff;
+}
+
+sub _croak ( $@ ) {
+  require Carp;
+  @_ = ( ( @_ == 1 ? shift : sprintf shift, @_ ) . ', stopped' );
+  goto &Carp::croak;
 }
 
 1;
