@@ -12,8 +12,8 @@ our @EXPORT_OK = qw( data_diff );
 sub data_diff {
   my ( $a, $b ) = @_;
 
-  if ( ref( $a ) ) {
-    if ( my $sub = __PACKAGE__->can( '_diff_' . ref( $a ) ) ) {
+  if ( ( my $ref_type = ref( $a ) ) ne '' ) {
+    if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
       return $sub->( $a, $b );
     } else {
       return { path => [], a => $a, b => $b };
@@ -38,8 +38,8 @@ sub _diff_HASH {
       push @diff, { path => [ @path, "{$k}" ], b => $b->{ $k } };
     } elsif ( !exists $b->{ $k } ) {
       push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k } };
-    } elsif ( ref( $a->{ $k } ) ) {
-      if ( my $sub = __PACKAGE__->can( '_diff_' . ref( $a->{ $k } ) ) ) {
+    } elsif ( ( my $ref_type = ref( $a->{ $k } ) ) ne '' ) {
+      if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
         push @diff, $sub->( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
       } else {
         push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } };
@@ -64,8 +64,8 @@ sub _diff_ARRAY {
       push @diff, { path => [ @path, "[$i]" ], b => $b->[ $i ] };
     } elsif ( $i > $#$b ) {
       push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ] };
-    } elsif ( ref( $a->[ $i ] ) ) {
-      if ( my $sub = __PACKAGE__->can( '_diff_' . ref( $a->[ $i ] ) ) ) {
+    } elsif ( ( my $ref_type = ref( $a->[ $i ] ) ) ne '' ) {
+      if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
         push @diff, $sub->( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
       } else {
         push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] };
