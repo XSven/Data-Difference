@@ -42,7 +42,7 @@ sub _diff_HASH {
       if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
         push @diff, $sub->( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
       } else {
-        push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } };
+        _croak( 'Cannot handle %s ref type yet', $ref_type );
       }
     } elsif ( defined $a->{ $k } ? defined $b->{ $k } ? $b->{ $k } ne $a->{ $k } : 1 : defined $b->{ $k } ) {
       push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } };
@@ -68,7 +68,7 @@ sub _diff_ARRAY {
       if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
         push @diff, $sub->( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
       } else {
-        push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] };
+        _croak( 'Cannot handle %s ref type yet', $ref_type );
       }
     } elsif ( defined $a->[ $i ] ? defined $b->[ $i ] ? $b->[ $i ] ne $a->[ $i ] : 1 : defined $b->[ $i ] ) {
       push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] };
