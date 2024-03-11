@@ -18,7 +18,7 @@ sub data_diff {
     } else {
       _croak( 'Cannot handle %s ref type yet', $ref_type );
     }
-  } elsif ( defined $a ? defined $b ? $a ne $b : 1 : 0 ) {
+  } elsif ( defined $a ? defined $b ? $a ne $b : 1 : defined $b ) {
     return { path => [], a => $a, b => $b };
   }
 

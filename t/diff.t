@@ -2,7 +2,7 @@
 use strict; use warnings;
 #>>>
 
-use Test::More import => [ qw( BAIL_OUT like use_ok ) ], tests => 12;
+use Test::More import => [ qw( BAIL_OUT like use_ok ) ], tests => 14;
 use Test::Differences qw( eq_or_diff );
 use Test::Fatal       qw( exception );
 
@@ -11,6 +11,18 @@ BEGIN { use_ok( 'Data::Difference', 'data_diff' ) or BAIL_OUT 'Cannot load modul
 my @tests = (
   { from => undef, to => undef, diff => [], name => 'no change ($from and $to are undefined)' },
   { from => 1,     to => 2,     diff => [ { path => [], a => 1, b => 2 } ], name => 'value $from was changed' },
+  {
+    from => 1,
+    to   => undef,
+    diff => [ { path => [], a => 1, b => undef } ],
+    name => 'value $from was changed to undef (rt.cpan.org #109262)'
+  },
+  {
+    from => undef,
+    to   => 2,
+    diff => [ { path => [], a => undef, b => 2 } ],
+    name => 'value $from was changed from undef to defined value (rt.cpan.org #109262)'
+  },
   {
     from => [ 1, 2, 3 ],
     to   => { W => 4, E => 3, R => 5 },
