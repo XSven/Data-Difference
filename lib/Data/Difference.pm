@@ -13,19 +13,23 @@ sub data_diff {
   my ( $a, $b ) = @_;
 
   if ( ( my $ref_type = ref( $a ) ) ne '' ) {
-    if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
+    if ( my $sub = __PACKAGE__->can( "_diff_${ref_type}_REF" ) ) {
       return $sub->( $a, $b );
     } else {
       _croak( 'Cannot handle %s ref type yet', $ref_type );
     }
-  } elsif ( defined $a ? defined $b ? $a ne $b : 1 : defined $b ) {
-    return { path => [], a => $a, b => $b };
+  } else {
+    return _diff_SCALAR( $a, $b );
   }
-
-  return;
 }
 
-sub _diff_HASH {
+sub _diff_SCALAR {
+  my ( $a, $b, @path ) = @_;
+
+  return ( defined $a ? defined $b ? $a ne $b : 1 : defined $b ) ? { path => [ @path ], a => $a, b => $b } : ();
+}
+
+sub _diff_HASH_REF {
   my ( $a, $b, @path ) = @_;
 
   return { path => \@path, a => $a, b => $b } unless ref( $a ) eq ref( $b );
@@ -39,20 +43,20 @@ sub _diff_HASH {
     } elsif ( !exists $b->{ $k } ) {
       push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k } };
     } elsif ( ( my $ref_type = ref( $a->{ $k } ) ) ne '' ) {
-      if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
+      if ( my $sub = __PACKAGE__->can( "_diff_${ref_type}_REF" ) ) {
         push @diff, $sub->( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
       } else {
         _croak( 'Cannot handle %s ref type yet', $ref_type );
       }
-    } elsif ( defined $a->{ $k } ? defined $b->{ $k } ? $b->{ $k } ne $a->{ $k } : 1 : defined $b->{ $k } ) {
-      push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } };
+    } else {
+      push @diff, _diff_SCALAR( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
     }
   }
 
   return @diff;
 }
 
-sub _diff_ARRAY {
+sub _diff_ARRAY_REF {
   my ( $a, $b, @path ) = @_;
   return { path => \@path, a => $a, b => $b } unless ref( $a ) eq ref( $b );
 
@@ -65,13 +69,13 @@ sub _diff_ARRAY {
     } elsif ( $i > $#$b ) {
       push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ] };
     } elsif ( ( my $ref_type = ref( $a->[ $i ] ) ) ne '' ) {
-      if ( my $sub = __PACKAGE__->can( "_diff_$ref_type" ) ) {
+      if ( my $sub = __PACKAGE__->can( "_diff_${ref_type}_REF" ) ) {
         push @diff, $sub->( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
       } else {
         _croak( 'Cannot handle %s ref type yet', $ref_type );
       }
-    } elsif ( defined $a->[ $i ] ? defined $b->[ $i ] ? $b->[ $i ] ne $a->[ $i ] : 1 : defined $b->[ $i ] ) {
-      push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] };
+    } else {
+      push @diff, _diff_SCALAR( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
     }
   }
 
