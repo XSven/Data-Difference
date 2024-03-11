@@ -12,15 +12,11 @@ our @EXPORT_OK = qw( data_diff );
 sub data_diff {
   my ( $a, $b ) = @_;
 
-  if ( ( my $ref_type = ref( $a ) ) ne '' ) {
-    if ( my $sub = __PACKAGE__->can( "_diff_${ref_type}_REF" ) ) {
-      return $sub->( $a, $b );
-    } else {
-      _croak( 'Cannot handle %s ref type yet', $ref_type );
-    }
-  } else {
-    return _diff_SCALAR( $a, $b );
+  my $ref_type = ref( $a );
+  if ( my $comparator = __PACKAGE__->can( '_diff_' . ( $ref_type eq '' ? 'SCALAR' : "${ref_type}_REF" ) ) ) {
+    return $comparator->( $a, $b );
   }
+  _croak( 'Cannot handle %s ref type yet', $ref_type );
 }
 
 sub _diff_SCALAR {
@@ -42,14 +38,13 @@ sub _diff_HASH_REF {
       push @diff, { path => [ @path, "{$k}" ], b => $b->{ $k } };
     } elsif ( !exists $b->{ $k } ) {
       push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k } };
-    } elsif ( ( my $ref_type = ref( $a->{ $k } ) ) ne '' ) {
-      if ( my $sub = __PACKAGE__->can( "_diff_${ref_type}_REF" ) ) {
-        push @diff, $sub->( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
+    } else {
+      my $ref_type = ref( $a->{ $k } );
+      if ( my $comparator = __PACKAGE__->can( '_diff_' . ( $ref_type eq '' ? 'SCALAR' : "${ref_type}_REF" ) ) ) {
+        push @diff, $comparator->( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
       } else {
         _croak( 'Cannot handle %s ref type yet', $ref_type );
       }
-    } else {
-      push @diff, _diff_SCALAR( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
     }
   }
 
@@ -68,14 +63,13 @@ sub _diff_ARRAY_REF {
       push @diff, { path => [ @path, "[$i]" ], b => $b->[ $i ] };
     } elsif ( $i > $#$b ) {
       push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ] };
-    } elsif ( ( my $ref_type = ref( $a->[ $i ] ) ) ne '' ) {
-      if ( my $sub = __PACKAGE__->can( "_diff_${ref_type}_REF" ) ) {
-        push @diff, $sub->( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
+    } else {
+      my $ref_type = ref( $a->[ $i ] );
+      if ( my $comparator = __PACKAGE__->can( '_diff_' . ( $ref_type eq '' ? 'SCALAR' : "${ref_type}_REF" ) ) ) {
+        push @diff, $comparator->( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
       } else {
         _croak( 'Cannot handle %s ref type yet', $ref_type );
       }
-    } else {
-      push @diff, _diff_SCALAR( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
     }
   }
 
