@@ -12,13 +12,23 @@ our @EXPORT_OK = qw( data_diff );
 sub data_diff {
   my ( $a, $b ) = @_;
 
-  my $ref_type = ref( $a );
-  if ( my $comparator = __PACKAGE__->can( '_diff_' . ( $ref_type eq '' ? 'SCALAR' : "${ref_type}_REF" ) ) ) {
-    return $comparator->( $a, $b );
-  }
-  _croak( 'Cannot handle %s ref type yet', $ref_type );
+  my $comparator = _choose_comparator( $a, $b );
+  return ( defined $comparator ? $comparator->( $a, $b ) : { path => [], a => $a, b => $b } );
 }
 
+sub _choose_comparator {
+  my ( $comparator_a, $comparator_b );
+  for ( @_ ) {
+    my $ref_type = ref;
+    _croak( 'Cannot handle %s ref type yet', $ref_type )
+      unless $comparator_b = __PACKAGE__->can( '_diff_' . ( $ref_type eq '' ? 'SCALAR' : "${ref_type}_REF" ) );
+    $comparator_a = $comparator_b, next if not defined $comparator_a;
+    return $comparator_a if $comparator_a == $comparator_b;
+  }
+  return;    # different comparators
+}
+
+# TODO: fix hard coded string comparison
 sub _diff_SCALAR {
   my ( $a, $b, @path ) = @_;
 
@@ -27,8 +37,6 @@ sub _diff_SCALAR {
 
 sub _diff_HASH_REF {
   my ( $a, $b, @path ) = @_;
-
-  return { path => \@path, a => $a, b => $b } unless ref( $a ) eq ref( $b );
 
   my @diff;
   my %k;
@@ -39,12 +47,13 @@ sub _diff_HASH_REF {
     } elsif ( !exists $b->{ $k } ) {
       push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k } };
     } else {
-      my $ref_type = ref( $a->{ $k } );
-      if ( my $comparator = __PACKAGE__->can( '_diff_' . ( $ref_type eq '' ? 'SCALAR' : "${ref_type}_REF" ) ) ) {
-        push @diff, $comparator->( $a->{ $k }, $b->{ $k }, @path, "{$k}" );
-      } else {
-        _croak( 'Cannot handle %s ref type yet', $ref_type );
-      }
+      my $comparator = _choose_comparator( $a->{ $k }, $b->{ $k } );
+      push @diff,
+        (
+        defined $comparator
+        ? $comparator->( $a->{ $k }, $b->{ $k }, @path, "{$k}" )
+        : { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } }
+        );
     }
   }
 
@@ -53,7 +62,6 @@ sub _diff_HASH_REF {
 
 sub _diff_ARRAY_REF {
   my ( $a, $b, @path ) = @_;
-  return { path => \@path, a => $a, b => $b } unless ref( $a ) eq ref( $b );
 
   my @diff;
   my $n = $#$a > $#$b ? $#$a : $#$b;
@@ -64,12 +72,13 @@ sub _diff_ARRAY_REF {
     } elsif ( $i > $#$b ) {
       push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ] };
     } else {
-      my $ref_type = ref( $a->[ $i ] );
-      if ( my $comparator = __PACKAGE__->can( '_diff_' . ( $ref_type eq '' ? 'SCALAR' : "${ref_type}_REF" ) ) ) {
-        push @diff, $comparator->( $a->[ $i ], $b->[ $i ], @path, "[$i]" );
-      } else {
-        _croak( 'Cannot handle %s ref type yet', $ref_type );
-      }
+      my $comparator = _choose_comparator( $a->[ $i ], $b->[ $i ] );
+      push @diff,
+        (
+        defined $comparator
+        ? $comparator->( $a->[ $i ], $b->[ $i ], @path, "[$i]" )
+        : { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] }
+        );
     }
   }
 
