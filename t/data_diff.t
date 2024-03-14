@@ -2,7 +2,7 @@
 use strict; use warnings;
 #>>>
 
-use Test::More import => [ qw( BAIL_OUT like use_ok ) ], tests => 14;
+use Test::More import => [ qw( BAIL_OUT like use_ok ) ], tests => 16;
 use Test::Differences qw( eq_or_diff );
 use Test::Fatal       qw( exception );
 
@@ -74,6 +74,18 @@ my @tests = (
     to   => { Z => 'foo' },
     diff => [ { path => [ '{Z}' ], a => undef, b => 'foo' } ],
     name => 'value $from->{ Z } was changed from undef to defined value (rt.cpan.org #109262)'
+  },
+  {
+    from => { Z => 'foo' },
+    to   => { Z => [ 'foo' ] },
+    diff => [ { path => [ '{Z}' ], a => 'foo', b => [ 'foo' ] } ],
+    name => 'value $from->{ Z } was changed (SCALAR to ARRAY REF type)'
+  },
+  {
+    from => [ qw( foo bar baz ) ],
+    to   => [ qw( foo bar ), [ 'baz' ] ],
+    diff => [ { path => [ '[2]' ], a => 'baz', b => [ 'baz' ] } ],
+    name => 'value $from->[ 2 ] was changed (SCALAR to ARRAY REF type)'
   },
 );
 
