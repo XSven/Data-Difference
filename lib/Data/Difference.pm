@@ -9,11 +9,15 @@ use Exporter qw( import );
 
 our @EXPORT_OK = qw( data_diff );
 
+sub DELETE () { 1 }
+sub ADD ()    { 2 }
+sub CHANGE () { 4 }
+
 sub data_diff {
   my ( $a, $b ) = @_;
 
   my $comparator = _choose_comparator( $a, $b );
-  return ( defined $comparator ? $comparator->( $a, $b ) : { path => [], a => $a, b => $b } );
+  return ( defined $comparator ? $comparator->( $a, $b ) : _create_data_diff_detail( CHANGE, $a, $b ) );
 }
 
 sub _choose_comparator {
@@ -25,39 +29,22 @@ sub _choose_comparator {
     $comparator_a = $comparator_b, next if not defined $comparator_a;
     return $comparator_a if $comparator_a == $comparator_b;
   }
-  return;    # different comparators
+  return;    # signal different comparators
 }
 
-# TODO: fix hard coded string comparison
-sub _diff_SCALAR {
-  my ( $a, $b, @path ) = @_;
+sub _create_data_diff_detail {
+  my ( $type, $a, $b, @path ) = @_;
 
-  return ( defined $a ? defined $b ? $a ne $b : 1 : defined $b ) ? { path => [ @path ], a => $a, b => $b } : ();
+  return {
+    path => [ @path ],
+    $type & ( DELETE | CHANGE ) ? ( a => $a ) : (), $type & ( ADD | CHANGE ) ? ( b => $b ) : ()
+  };
 }
 
-sub _diff_HASH_REF {
-  my ( $a, $b, @path ) = @_;
-
-  my @diff;
-  my %k;
-  @k{ keys %$a, keys %$b } = ();
-  foreach my $k ( sort keys %k ) {
-    if ( !exists $a->{ $k } ) {
-      push @diff, { path => [ @path, "{$k}" ], b => $b->{ $k } };
-    } elsif ( !exists $b->{ $k } ) {
-      push @diff, { path => [ @path, "{$k}" ], a => $a->{ $k } };
-    } else {
-      my $comparator = _choose_comparator( $a->{ $k }, $b->{ $k } );
-      push @diff,
-        (
-        defined $comparator
-        ? $comparator->( $a->{ $k }, $b->{ $k }, @path, "{$k}" )
-        : { path => [ @path, "{$k}" ], a => $a->{ $k }, b => $b->{ $k } }
-        );
-    }
-  }
-
-  return @diff;
+sub _croak {
+  require Carp;
+  @_ = ( ( @_ == 1 ? shift : sprintf shift, @_ ) . ', stopped' );
+  goto &Carp::croak;
 }
 
 sub _diff_ARRAY_REF {
@@ -68,16 +55,16 @@ sub _diff_ARRAY_REF {
 
   foreach my $i ( 0 .. $n ) {
     if ( $i > $#$a ) {
-      push @diff, { path => [ @path, "[$i]" ], b => $b->[ $i ] };
+      push @diff, _create_data_diff_detail( ADD, undef, $b->[ $i ], @path, "[$i]" );
     } elsif ( $i > $#$b ) {
-      push @diff, { path => [ @path, "[$i]" ], a => $a->[ $i ] };
+      push @diff, _create_data_diff_detail( DELETE, $a->[ $i ], undef, @path, "[$i]" );
     } else {
       my $comparator = _choose_comparator( $a->[ $i ], $b->[ $i ] );
       push @diff,
         (
         defined $comparator
         ? $comparator->( $a->[ $i ], $b->[ $i ], @path, "[$i]" )
-        : { path => [ @path, "[$i]" ], a => $a->[ $i ], b => $b->[ $i ] }
+        : _create_data_diff_detail( CHANGE, $a->[ $i ], $b->[ $i ], @path, "[$i]" )
         );
     }
   }
@@ -85,10 +72,39 @@ sub _diff_ARRAY_REF {
   return @diff;
 }
 
-sub _croak ( $@ ) {
-  require Carp;
-  @_ = ( ( @_ == 1 ? shift : sprintf shift, @_ ) . ', stopped' );
-  goto &Carp::croak;
+sub _diff_HASH_REF {
+  my ( $a, $b, @path ) = @_;
+
+  my @diff;
+  my %k;
+  @k{ keys %$a, keys %$b } = ();
+
+  foreach my $k ( sort keys %k ) {
+    if ( !exists $a->{ $k } ) {
+      push @diff, _create_data_diff_detail( ADD, undef, $b->{ $k }, @path, "{$k}" );
+    } elsif ( !exists $b->{ $k } ) {
+      push @diff, _create_data_diff_detail( DELETE, $a->{ $k }, undef, @path, "{$k}" );
+    } else {
+      my $comparator = _choose_comparator( $a->{ $k }, $b->{ $k } );
+      push @diff,
+        (
+        defined $comparator
+        ? $comparator->( $a->{ $k }, $b->{ $k }, @path, "{$k}" )
+        : _create_data_diff_detail( CHANGE, $a->{ $k }, $b->{ $k }, @path, "{$k}" )
+        );
+    }
+  }
+
+  return @diff;
+}
+
+# TODO: fix hard coded string comparison
+sub _diff_SCALAR {
+  my ( $a, $b, @path ) = @_;
+
+  return ( defined $a ? defined $b ? $a ne $b : 1 : defined $b )
+    ? _create_data_diff_detail( CHANGE, $a, $b, @path )
+    : ();
 }
 
 1;
