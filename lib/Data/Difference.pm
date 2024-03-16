@@ -1,23 +1,41 @@
-#<<<
-use strict; use warnings;
-#>>>
+use strict;
+use warnings;
 
 package Data::Difference;
 # ABSTRACT: Compare simple hierarchical data
 
+use subs qw( _croak );
+
 use Exporter qw( import );
 
-our @EXPORT_OK = qw( data_diff );
+our @EXPORT_OK = qw( get_value data_diff );
 
-sub DELETE () { 1 }
-sub ADD ()    { 2 }
-sub CHANGE () { 4 }
+sub _DELETE () { 1 }
+sub _ADD ()    { 2 }
+sub _CHANGE () { 4 }
+
+sub get_value {
+  my ( $a_or_b, $path ) = @_;
+
+  my @tmp = @$path;
+  # the variable name $ik is the concatenation of its values "i" and "k"
+  while ( my ( $ik, $v ) = splice @tmp, 0, 2 ) {
+    if ( $ik eq 'k' ) {
+      $a_or_b = $a_or_b->{ $v };
+    } elsif ( $ik eq 'i' ) {
+      $a_or_b = $a_or_b->[ $v ];
+    } else {
+      _croak "Invalid path element type (got: '%s', expected: 'i' or 'k')", $ik;
+    }
+  }
+  return $a_or_b;
+}
 
 sub data_diff {
   my ( $a, $b ) = @_;
 
   my $comparator = _choose_comparator( $a, $b );
-  return ( defined $comparator ? $comparator->( $a, $b ) : _create_data_diff_detail( CHANGE, $a, $b ) );
+  return ( defined $comparator ? $comparator->( $a, $b ) : _create_data_diff_detail( _CHANGE, $a, $b ) );
 }
 
 sub _choose_comparator {
@@ -37,7 +55,7 @@ sub _create_data_diff_detail {
 
   return {
     path => [ @path ],
-    $type & ( DELETE | CHANGE ) ? ( a => $a ) : (), $type & ( ADD | CHANGE ) ? ( b => $b ) : ()
+    $type & ( _DELETE | _CHANGE ) ? ( a => $a ) : (), $type & ( _ADD | _CHANGE ) ? ( b => $b ) : ()
   };
 }
 
@@ -55,16 +73,16 @@ sub _diff_ARRAY_REF {
 
   foreach my $i ( 0 .. $n ) {
     if ( $i > $#$a ) {
-      push @diff, _create_data_diff_detail( ADD, undef, $b->[ $i ], @path, "[$i]" );
+      push @diff, _create_data_diff_detail( _ADD, undef, $b->[ $i ], @path, i => $i );
     } elsif ( $i > $#$b ) {
-      push @diff, _create_data_diff_detail( DELETE, $a->[ $i ], undef, @path, "[$i]" );
+      push @diff, _create_data_diff_detail( _DELETE, $a->[ $i ], undef, @path, i => $i );
     } else {
       my $comparator = _choose_comparator( $a->[ $i ], $b->[ $i ] );
       push @diff,
         (
         defined $comparator
-        ? $comparator->( $a->[ $i ], $b->[ $i ], @path, "[$i]" )
-        : _create_data_diff_detail( CHANGE, $a->[ $i ], $b->[ $i ], @path, "[$i]" )
+        ? $comparator->( $a->[ $i ], $b->[ $i ], @path, i => $i )
+        : _create_data_diff_detail( _CHANGE, $a->[ $i ], $b->[ $i ], @path, i => $i )
         );
     }
   }
@@ -81,16 +99,16 @@ sub _diff_HASH_REF {
 
   foreach my $k ( sort keys %k ) {
     if ( !exists $a->{ $k } ) {
-      push @diff, _create_data_diff_detail( ADD, undef, $b->{ $k }, @path, "{$k}" );
+      push @diff, _create_data_diff_detail( _ADD, undef, $b->{ $k }, @path, k => $k );
     } elsif ( !exists $b->{ $k } ) {
-      push @diff, _create_data_diff_detail( DELETE, $a->{ $k }, undef, @path, "{$k}" );
+      push @diff, _create_data_diff_detail( _DELETE, $a->{ $k }, undef, @path, k => $k );
     } else {
       my $comparator = _choose_comparator( $a->{ $k }, $b->{ $k } );
       push @diff,
         (
         defined $comparator
-        ? $comparator->( $a->{ $k }, $b->{ $k }, @path, "{$k}" )
-        : _create_data_diff_detail( CHANGE, $a->{ $k }, $b->{ $k }, @path, "{$k}" )
+        ? $comparator->( $a->{ $k }, $b->{ $k }, @path, k => $k )
+        : _create_data_diff_detail( _CHANGE, $a->{ $k }, $b->{ $k }, @path, k => $k )
         );
     }
   }
@@ -103,7 +121,7 @@ sub _diff_SCALAR {
   my ( $a, $b, @path ) = @_;
 
   return ( defined $a ? defined $b ? $a ne $b : 1 : defined $b )
-    ? _create_data_diff_detail( CHANGE, $a, $b, @path )
+    ? _create_data_diff_detail( _CHANGE, $a, $b, @path )
     : ();
 }
 
@@ -125,22 +143,22 @@ Data::Difference - Compare simple hierarchical data
 
   @diff = (
     # value $a->{ Q } was deleted
-    { a    => 1, path => [ '{Q}' ] },
+    { a    => 1, path => [ k => 'Q' ] },
 
     # value $b->{ R } was added
-    { b    => 5, path => [ '{R}' ] },
+    { b    => 5, path => [ k => 'R' ] },
 
     # value $a->{ W } was changed
-    { a    => 2, b    => 4, path => [ '{W}' ] },
+    { a    => 2, b    => 4, path => [ k => 'W' ] },
 
     # value $a->{ X }[ 2 ] was deleted
-    { a    => 3, path => [ '{X}', 2 ] },
+    { a    => 3, path => [ k => 'X', i => 2 ] },
 
     # value $a->{ Y }[ 1 ] was changed
-    { a    => 6, b    => 7, path => [ '{Y}', '[1]' ] },
+    { a    => 6, b    => 7, path => [ k => 'Y', i => 1 ] },
 
     # value $b->{ Y }[ 2 ] was added
-    { b    => 9, path => [ '{Y}', '[2]' ] },
+    { b    => 9, path => [ k => 'Y', i => 2 ] },
   );
 
 =head1 DESCRIPTION
@@ -149,15 +167,16 @@ C<Data::Difference> will compare simple data structures returning a list of
 details about what was added, removed or changed. It will currently handle
 SCALARs, HASH references and ARRAY references.
 
-Each change is returned as a hash reference with the following elements:
+Each change is returned as a HASH reference with the following elements:
 
 =over
 
 =item path
 
-path will be an ARRAY reference containing the hierarchical path to the value,
-each element in the array will be either the key of a hash or the index on an
-array.
+path will be an ARRAY reference containing the hierarchical path to the value.
+The array is either empty or has an even number of elements. The elements
+with an even index specify the type of the following element. The type is
+either "k" for a hash key or "i" for an array index.
 
 =item a
 
