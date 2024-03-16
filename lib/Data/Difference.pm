@@ -25,9 +25,10 @@ sub get_value {
     } elsif ( $ik eq 'i' ) {
       $a_or_b = $a_or_b->[ $v ];
     } else {
-      _croak "Invalid path element type (got: '%s', expected: 'i' or 'k')", $ik;
+      _croak "Unknown path element type (got: '%s', expected: 'i' or 'k')", $ik;
     }
   }
+
   return $a_or_b;
 }
 

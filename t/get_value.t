@@ -2,7 +2,8 @@
 use strict; use warnings;
 #>>>
 
-use Test::More import => [ qw( BAIL_OUT is plan subtest use_ok ) ], tests => 4;
+use Test::More import => [ qw( BAIL_OUT is like plan subtest use_ok ) ], tests => 5;
+use Test::Fatal qw( exception );
 
 my $module;
 
@@ -14,6 +15,17 @@ BEGIN {
 my $from = { X => [ 1, 2, 3 ], Y => [ 5, 6 ] };
 my $to   = { X => [ 1, 2 ], Y => [ 5, 7, 9 ] };
 my @diff = data_diff( $from, $to );
+
+subtest 'provoke exceptions' => sub {
+  plan tests => 3;
+
+  like exception { get_value( {}, [ f => 'foo' ] ) }, qr/\AUnknown path element type \(got: 'f'/,
+    'unknown path element type';
+
+  like exception { get_value( {}, [ i => 0 ] ) }, qr/\ANot an ARRAY reference/, 'invalid path element type';
+
+  like exception { get_value( [], [ k => 'foo' ] ) }, qr/\ANot a HASH reference/, 'invalid path element type';
+};
 
 subtest 'something was deleted' => sub {
   plan tests => 1;
