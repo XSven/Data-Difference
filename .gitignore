@@ -1,2 +1,3 @@
 Data-Difference-*
 .*.swp
+.build/
