@@ -9,7 +9,7 @@ my $module;
 
 BEGIN {
   $module = 'Data::Difference';
-  use_ok( $module, qw( data_diff ) ) or BAIL_OUT "Cannot load module '$module'!";
+  use_ok( $module, data_diff => { -version => 'v2' } ) or BAIL_OUT "Cannot load module '$module'!";
 }
 
 my @tests = (

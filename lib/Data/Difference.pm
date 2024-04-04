@@ -6,13 +6,21 @@ package Data::Difference;
 
 use subs qw( _croak );
 
-use Exporter qw( import );
-
-our @EXPORT_OK = qw( get_value data_diff );
+use Exporter::Shiny our @EXPORT_OK = qw( get_value data_diff );
 
 sub _DELETE () { 1 }
 sub _ADD ()    { 2 }
 sub _CHANGE () { 4 }
+
+# https://metacpan.org/dist/Exporter-Tiny/view/lib/Exporter/Tiny/Manual/QuickStart.pod#Generators
+sub _generate_data_diff {
+  my ( undef, undef, $args, undef ) = @_;
+
+  if ( my $version = delete $args->{ -version } ) {
+    return \&data_diff2 if $version eq 'v2';
+  }
+  return \&data_diff1;
+}
 
 sub get_value {
   my ( $a_or_b, $path ) = @_;
@@ -32,7 +40,18 @@ sub get_value {
   return $a_or_b;
 }
 
-sub data_diff {
+sub data_diff1 {
+  my @diff = data_diff2( @_ );
+  for ( @diff ) {
+    if ( defined( my $path = $_->{ path } ) ) {
+      my $i = 0;
+      @$path = grep { $_ if $i++ % 2 } @$path;
+    }
+  }
+  return @diff;
+}
+
+sub data_diff2 {
   my ( $a, $b ) = @_;
 
   my $comparator = _choose_comparator( $a, $b );
