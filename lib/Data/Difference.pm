@@ -17,8 +17,13 @@ sub _generate_data_diff {
   my ( undef, undef, $args, undef ) = @_;
 
   if ( my $version = delete $args->{ -version } ) {
+    _croak "Improper version format '%s'", $version
+      unless $version =~ m/\Av[1-9]\d*\z/;
     return \&data_diff2 if $version eq 'v2';
+    _croak "data_diff() has no version '%s' implementation", $version
+      unless $version eq 'v1';
   }
+
   return \&data_diff1;
 }
 
@@ -40,14 +45,18 @@ sub get_value {
   return $a_or_b;
 }
 
+# original implemenation
 sub data_diff1 {
   my @diff = data_diff2( @_ );
+
   for ( @diff ) {
-    if ( defined( my $path = $_->{ path } ) ) {
-      my $i = 0;
-      @$path = grep { $_ if $i++ % 2 } @$path;
-    }
+    # $path is always defined and an ARRAY reference
+    my $path = $_->{ path };
+    my $i    = 0;
+    # patch $path: remove type information
+    @$path = grep { $_ if $i++ % 2 } @$path;
   }
+
   return @diff;
 }
 
@@ -155,7 +164,7 @@ Data::Difference - Compare simple hierarchical data
 
 =head1 SYNOPSYS
 
-  use Data::Difference qw( data_diff );
+  use Data::Difference data_diff => { -version => 'v2' };
 
   my %from = ( Q => 1, W => 2, E => 3, X => [ 1, 2, 3 ], Y=> [ 5, 6 ] );
   my %to = ( W => 4, E => 3, R => 5, => X => [ 1, 2 ], Y => [ 5, 7, 9 ] );
@@ -197,6 +206,11 @@ path will be an ARRAY reference containing the hierarchical path to the value.
 The array is either empty or has an even number of elements. The elements
 with an even index specify the type of the following element. The type is
 either "k" for a hash key or "i" for an array index.
+
+If you import C<data_diff> without specifying an implementation version or with
+the implementation version "v1", you will get the original one that is part of
+C<Data::Difference> version 0.112850. This original implementation does not
+show type information in the path.
 
 =item a
 
