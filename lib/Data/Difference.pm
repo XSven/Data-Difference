@@ -18,13 +18,13 @@ sub _generate_data_diff {
 
   if ( my $version = delete $args->{ -version } ) {
     _croak "Improper version format '%s'", $version
-      unless $version =~ m/\Av[1-9]\d*\z/;
-    return \&data_diff2 if $version eq 'v2';
+      unless $version =~ m/\Av0 | v[1-9]\d*\z/x;
+    return \&data_diff1 if $version eq 'v1';
     _croak "data_diff() has no version '%s' implementation", $version
-      unless $version eq 'v1';
+      unless $version eq 'v0';
   }
 
-  return \&data_diff1;
+  return \&data_diff0;
 }
 
 sub get_value {
@@ -46,8 +46,8 @@ sub get_value {
 }
 
 # original implemenation
-sub data_diff1 {
-  my @diff = data_diff2( @_ );
+sub data_diff0 {
+  my @diff = data_diff1( @_ );
 
   for ( @diff ) {
     # $path is always defined and an ARRAY reference
@@ -60,7 +60,7 @@ sub data_diff1 {
   return @diff;
 }
 
-sub data_diff2 {
+sub data_diff1 {
   my ( $a, $b ) = @_;
 
   my $comparator = _choose_comparator( $a, $b );
@@ -164,7 +164,7 @@ Data::Difference - Compare simple hierarchical data
 
 =head1 SYNOPSYS
 
-  use Data::Difference data_diff => { -version => 'v2' };
+  use Data::Difference data_diff => { -version => 'v1' };
 
   my %from = ( Q => 1, W => 2, E => 3, X => [ 1, 2, 3 ], Y=> [ 5, 6 ] );
   my %to = ( W => 4, E => 3, R => 5, => X => [ 1, 2 ], Y => [ 5, 7, 9 ] );
@@ -208,7 +208,7 @@ with an even index specify the type of the following element. The type is
 either "k" for a hash key or "i" for an array index.
 
 If you import C<data_diff> without specifying an implementation version or with
-the implementation version "v1", you will get the original one that is part of
+the implementation version "v0", you will get the original one that is part of
 C<Data::Difference> version 0.112850. This original implementation does not
 show type information in the path.
 

@@ -9,7 +9,7 @@ my $module;
 
 BEGIN {
   $module = 'Data::Difference';
-  use_ok( $module, 'get_value', data_diff => { -version => 'v2' } ) or BAIL_OUT "Cannot load module '$module'!";
+  use_ok( $module, 'get_value', data_diff => { -version => 'v1' } ) or BAIL_OUT "Cannot load module '$module'!";
 }
 
 my $from = { X => [ 1, 2, 3 ], Y => [ 5, 6 ] };

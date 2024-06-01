@@ -13,7 +13,7 @@ BEGIN {
 
 like exception { $module->_generate_data_diff( undef, { -version => 'alpha' } ) }, qr/\AImproper/,
   'improper version format';
-like exception { $module->_generate_data_diff( undef, { -version => 'v3' } ) }, qr/has no version 'v3' implementation/,
+like exception { $module->_generate_data_diff( undef, { -version => 'v2' } ) }, qr/has no version 'v2' implementation/,
   'data_diff() has no implementation for the given version';
-ok $module->_generate_data_diff( undef, { -version => 'v1' } ) == $module->can( 'data_diff1' ),
+ok $module->_generate_data_diff( undef, { -version => 'v0' } ) == $module->can( 'data_diff0' ),
   'generate original implementation of data_diff()'
