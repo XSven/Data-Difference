@@ -31,14 +31,14 @@ sub get_value {
   my ( $a_or_b, $path ) = @_;
 
   my @tmp = @$path;
-  # the variable name $ik is the concatenation of its values "i" and "k"
-  while ( my ( $ik, $v ) = splice @tmp, 0, 2 ) {
-    if ( $ik eq 'k' ) {
-      $a_or_b = $a_or_b->{ $v };
-    } elsif ( $ik eq 'i' ) {
-      $a_or_b = $a_or_b->[ $v ];
+  # pairwise read type and element
+  while ( my ( $t, $e ) = splice @tmp, 0, 2 ) {
+    if ( $t eq 'k' ) {
+      $a_or_b = $a_or_b->{ $e };
+    } elsif ( $t eq 'i' ) {
+      $a_or_b = $a_or_b->[ $e ];
     } else {
-      _croak "Unknown path element type (got: '%s', expected: 'i' or 'k')", $ik;
+      _croak "Unknown path element type (got: '%s', expected: 'i' or 'k')", $t;
     }
   }
 

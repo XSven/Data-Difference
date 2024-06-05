@@ -17,7 +17,7 @@ my $to   = { X => [ 1, 2 ], Y => [ 5, 7, 9 ] };
 my @diff = data_diff( $from, $to );
 
 subtest 'provoke exceptions' => sub {
-  plan tests => 3;
+  plan tests => 4;
 
   like exception { get_value( {}, [ f => 'foo' ] ) }, qr/\AUnknown path element type \(got: 'f'/,
     'unknown path element type';
@@ -25,6 +25,9 @@ subtest 'provoke exceptions' => sub {
   like exception { get_value( {}, [ i => 0 ] ) }, qr/\ANot an ARRAY reference/, 'invalid path element type';
 
   like exception { get_value( [], [ k => 'foo' ] ) }, qr/\ANot a HASH reference/, 'invalid path element type';
+
+  like exception { get_value( { foo => 'bar' }, [ k => 'foo', i => 0 ] ) },
+    qr/\ACan't use string \("bar"\) as an ARRAY ref while "strict refs" in use/, 'cannot dereference a string';
 };
 
 subtest 'something was deleted' => sub {
